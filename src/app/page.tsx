@@ -44,8 +44,10 @@ export default function Home() {
         </div>
         <h1 className="text-3xl capitalize sm:text-5xl md:text-6xl lg:text-7xl">
           For Sharing Insights and Knowledge on{" "}
-          <span className="font-code text-yellow-300">AI</span> and{" "}
-          <span className="font-code text-primary">Web Development</span>
+          <span className="font-code bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(34,211,238,0.5)] font-bold">
+            AI
+          </span>{" "}
+          and <span className="font-code text-primary">Web Development</span>
         </h1>
         <p className="max-w-2xl leading-normal text-muted-foreground sm:text-xl sm:leading-8">
           {siteConfig.description}
