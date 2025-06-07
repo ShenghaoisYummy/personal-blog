@@ -47,7 +47,7 @@ export default function Home() {
           <span className="font-code bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_2px_rgba(34,211,238,0.5)] font-bold">
             AI
           </span>{" "}
-          and <span className="font-code text-primary">Web Development</span>
+          and <span className="font-code text-sky-500">Web Development</span>
         </h1>
         <p className="max-w-2xl leading-normal text-muted-foreground sm:text-xl sm:leading-8">
           {siteConfig.description}
