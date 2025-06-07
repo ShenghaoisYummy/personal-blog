@@ -9,6 +9,6 @@ export const NAV_LIST = [
 
 export const SOCIALS = [
   { label: "Github", path: siteConfig.social.github, icon: Icons.github },
-  { label: "Facebook", path: siteConfig.social.facebook, icon: Icons.facebook },
+  { label: "Instagram", path: siteConfig.social.instagram, icon: Icons.instagram },
   { label: "Twitter", path: siteConfig.social.twitter, icon: Icons.x },
 ];

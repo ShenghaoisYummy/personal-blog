@@ -26,11 +26,11 @@ export default function AboutPage() {
               width={82}
               height={82}
               alt={siteConfig.name}
-              className="absolute -top-8 mb-4 rounded-full border bg-primary"
+              className="absolute -top-8 mb-4 rounded-full border bg-primary object-cover aspect-square"
             />
             <h3 className="mt-8 text-lg font-semibold">{siteConfig.author}</h3>
             <p className="text-center text-sm text-muted-foreground">
-              Web Developer
+              Software Engineer
             </p>
             <div className="flex items-center space-x-2">
               {SOCIALS.map((social) => (
@@ -41,7 +41,7 @@ export default function AboutPage() {
                   target="_blank"
                   className={cn(
                     buttonVariants({ variant: "ghost" }),
-                    "text-primary px-0 hover:bg-primary transition-colors rounded-full p-2 size-8 bg-primary/80",
+                    "text-primary px-0 hover:bg-primary transition-colors rounded-full p-2 size-8 bg-primary/80"
                   )}
                 >
                   <social.icon className="size-6" />
