@@ -2,7 +2,7 @@
 
 A personal blog by Austin Xu built with MDX, Next.js 14, and modern web technologies. Share thoughts, tutorials, and insights about web development.
 
-<img src="screenshot/mdx-blog-template.jpg" alt="Austin's Blog" width="100%">
+<!-- <img src="screenshot/mdx-blog-template.jpg" alt="Austin's Blog" width="100%"> -->
 
 ## Table of Contents
 
