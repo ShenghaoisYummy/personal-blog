@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import App from "@/components/app";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" className="">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
           "min-h-screen antialiased font-lexend bg-background",
@@ -34,7 +35,14 @@ export default function RootLayout({
           fontCode.variable
         )}
       >
-        <App>{children}</App>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <App>{children}</App>
+        </ThemeProvider>
       </body>
     </html>
   );

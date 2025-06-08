@@ -7,6 +7,7 @@ import HeaderNav from "@/components/header-nav";
 import { Button } from "@/components/ui/button";
 import MobileNav from "@/components/mobile-nav";
 import { Icons } from "./icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function SiteHeader() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -20,6 +21,7 @@ export default function SiteHeader() {
           >
             <Icons.logo className="size-12 fill-current" />
             <span className="font-bold">{siteConfig.name}</span>
+            <ThemeToggle />
           </Link>
         </div>
         <div className="flex items-center space-x-5 md:space-x-6">
