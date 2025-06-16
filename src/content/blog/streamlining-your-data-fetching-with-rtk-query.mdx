@@ -1,0 +1,173 @@
+---
+title: "`Streamlining Your Data Fetching with RTK Query`"
+description: "Discover when it's appropriate to use Typescript's `any` type despite its risks. Learn about legitimate cases where `any` is necessary"
+image: "/images/blog/logo.webp"
+date: "2025-06-16"
+author: "Austin Xu"
+---
+
+## What is RTK Query
+
+RTK stands for **Redux Toolkit**, the “batteries-included” way to write Redux logic .
+Rather than manually defining `action types` , `action creators` , and `switch-case reducers` ,
+you define `slices` of state with `createSlice` and get all of that auto-generated for you .
+Under the hood, RTK uses Immer so you can write `mutating` updates that produce immutable state changes without extra effort .
+
+## Why we need RTK Query
+
+Redux is a state management library for JavaScript applications. It provides a way to manage the state of an application in a predictable and consistent manner.
+
+However, Redux can be complex to use, especially for large applications. RTK is a library that makes it easier to use Redux by providing a set of tools and utilities that help you write Redux code more _efficiently_ and _effectively_.
+
+- **Too Much Boilerplate in Plain Redux:** Traditional Redux forces you to write a lot of repetitive code—action constants, creators, thunks, and long reducer switch statements .
+- **Inconsistent Best Practices:** Projects often roll their own middleware setup and DevTools integration, leading to divergent patterns across teams .
+- **RTK’s Solution:** RTK abstracts these patterns away, providing configureStore with thunk and DevTools wired up by default, plus slice-based reducers and async helpers—so you follow best practices automatically .
+
+## Comparison with Redux traditional approach
+
+### Traditional approach
+
+This is the traditional approach to using Redux. It is a bit verbose and requires a lot of boilerplate code.
+
+```js
+// actionTypes.js
+export const INCREMENT = "counter/increment";
+export const DECREMENT = "counter/decrement";
+
+// actions.js
+export const increment = () => ({ type: INCREMENT });
+export const decrement = () => ({ type: DECREMENT });
+
+// reducer.js
+export default function counterReducer(state = { value: 0 }, action) {
+  switch (action.type) {
+    case INCREMENT:
+      return { ...state, value: state.value + 1 };
+    case DECREMENT:
+      return { ...state, value: state.value - 1 };
+    default:
+      return state;
+  }
+}
+
+// store.js
+import { createStore, combineReducers, applyMiddleware } from "redux";
+import thunk from "redux-thunk";
+import counterReducer from "./reducer";
+
+const rootReducer = combineReducers({ counter: counterReducer });
+
+export const store = createStore(rootReducer, applyMiddleware(thunk));
+```
+
+### RTK approach
+
+This is the RTK approach to using Redux. It is a bit more concise and requires less boilerplate code.
+
+```js
+// counterSlice.js
+import { createSlice } from "@reduxjs/toolkit";
+
+const counterSlice = createSlice({
+  name: "counter",
+  initialState: { value: 0 },
+  reducers: {
+    increment: (state) => {
+      state.value += 1;
+    },
+    decrement: (state) => {
+      state.value -= 1;
+    },
+  },
+});
+
+export const { increment, decrement } = counterSlice.actions;
+export default counterSlice.reducer;
+
+// store.js
+import { configureStore } from "@reduxjs/toolkit";
+import counterReducer from "./counterSlice";
+
+export const store = configureStore({
+  reducer: {
+    counter: counterReducer,
+  },
+  // thunk middleware + devtools are added by default
+});
+```
+
+## what's included in RTK Query
+
+- `createApi()`: The core of RTK Query's functionality. It allows you to define a set of "endpoints" that describe how to retrieve data from backend APIs and other async sources, including the configuration of how to fetch and transform that data. In most cases, you should use this once per app, with "one API slice per base URL" as a rule of thumb.
+- `fetchBaseQuery()`: A small wrapper around fetch that aims to simplify requests. Intended as the recommended baseQuery to be used in createApi for the majority of users.
+- `<ApiProvider />`: Can be used as a Provider if you do not already have a Redux store.
+- `setupListeners()`: A utility used to enable refetchOnMount and refetchOnReconnect behaviors.
+
+## How to use RTK Query
+
+### Install dependencies
+
+```bash
+npm install @reduxjs/toolkit react-redux
+```
+
+### Create a new API slice
+
+RTK Query is included within the installation of the core Redux Toolkit package. It is available via either of the two entry points below:
+
+````js
+import { createApi } from '@reduxjs/toolkit/query'
+
+/* React-specific entry point that automatically generates
+   hooks corresponding to the defined endpoints */
+import { createApi } from '@reduxjs/toolkit/query/react'```
+````
+
+This is a simple example from my project snippet of how to create an API slice.
+
+```js
+
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { Basket } from "../../app/models/basket";
+import { baseQueryWithErrorHandling } from "../../app/api/api";
+
+export const basketApi = createApi({
+  reducerPath: "basketApi",
+  baseQuery: baseQueryWithErrorHandling,
+  endpoints: (builder) => ({
+    fetchBasket: builder.query<Basket, void>({
+      query: () => "basket",
+    }),
+    addBasketItem: builder.mutation<
+      Basket,
+      { productId: number; quantity: number }
+    >({
+      query: ({ productId, quantity }) => ({
+        url: `basket?productId=${productId}&quantity=${quantity}`,
+        method: "POST",
+      }),
+    }),
+  }),
+});
+
+export const { useFetchBasketQuery } = basketApi;
+```
+
+### Configure the Store
+
+```js
+import { configureStore } from "@reduxjs/toolkit";
+import { basketApi } from "../../features/basket/basketApi";
+
+export const store = configureStore({
+  reducer: {
+    [basketApi.reducerPath]: basketApi.reducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(basketApi.middleware),
+});
+```
+
+## Conclusion
+
+RTK Query transforms the way you interact with APIs in Redux applications by abstracting away boilerplate and enforcing best practices out of the box. With a simple createApi setup, automatically generated hooks, and built-in caching, invalidation, and background refetching, you can focus on delivering features instead of wiring up action types and thunks. Whether you're building a small widget or scaling a complex enterprise dashboard, RTK Query ensures consistent, maintainable, and performant data-loading workflows. Give it a try in your next project and experience how much faster—and easier—Redux development can be.
