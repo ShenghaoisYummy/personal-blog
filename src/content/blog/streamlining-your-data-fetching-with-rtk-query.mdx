@@ -9,9 +9,9 @@ author: "Austin Xu"
 ## What is RTK Query
 
 RTK stands for **Redux Toolkit**, the “batteries-included” way to write Redux logic .
-Rather than manually defining `action types` , `action creators` , and `switch-case reducers` ,
-you define `slices` of state with `createSlice` and get all of that auto-generated for you .
-Under the hood, RTK uses Immer so you can write `mutating` updates that produce immutable state changes without extra effort .
+Rather than manually defining **action types** , **action creators** , and **switch-case reducers** ,
+you define **slices** of state with **createSlice** and get all of that auto-generated for you .
+Under the hood, RTK uses **Immer** so you can write **mutating** updates that produce immutable state changes without extra effort .
 
 ## Why we need RTK Query
 
@@ -25,39 +25,75 @@ However, Redux can be complex to use, especially for large applications. RTK is 
 
 ## Comparison with Redux traditional approach
 
-### Traditional approach
+### Traditional Redux with Thunks
 
 This is the traditional approach to using Redux. It is a bit verbose and requires a lot of boilerplate code.
 
 ```js
 // actionTypes.js
-export const INCREMENT = "counter/increment";
-export const DECREMENT = "counter/decrement";
+export const FETCH_POSTS_PENDING = "FETCH_POSTS_PENDING";
+export const FETCH_POSTS_FULFILLED = "FETCH_POSTS_FULFILLED";
+export const FETCH_POSTS_REJECTED = "FETCH_POSTS_REJECTED";
 
 // actions.js
-export const increment = () => ({ type: INCREMENT });
-export const decrement = () => ({ type: DECREMENT });
+export const fetchPosts = () => async (dispatch) => {
+  dispatch({ type: FETCH_POSTS_PENDING });
+  try {
+    const res = await fetch("/api/posts");
+    const data = await res.json();
+    dispatch({ type: FETCH_POSTS_FULFILLED, payload: data });
+  } catch (err) {
+    dispatch({ type: FETCH_POSTS_REJECTED, error: err.toString() });
+  }
+};
 
 // reducer.js
-export default function counterReducer(state = { value: 0 }, action) {
+const initialState = { items: [], loading: false, error: null };
+
+export default function postsReducer(state = initialState, action) {
   switch (action.type) {
-    case INCREMENT:
-      return { ...state, value: state.value + 1 };
-    case DECREMENT:
-      return { ...state, value: state.value - 1 };
+    case FETCH_POSTS_PENDING:
+      return { ...state, loading: true, error: null };
+    case FETCH_POSTS_FULFILLED:
+      return { ...state, loading: false, items: action.payload };
+    case FETCH_POSTS_REJECTED:
+      return { ...state, loading: false, error: action.error };
     default:
       return state;
   }
 }
 
 // store.js
-import { createStore, combineReducers, applyMiddleware } from "redux";
+import { createStore, applyMiddleware, combineReducers } from "redux";
 import thunk from "redux-thunk";
-import counterReducer from "./reducer";
+import postsReducer from "./reducer";
 
-const rootReducer = combineReducers({ counter: counterReducer });
-
+const rootReducer = combineReducers({ posts: postsReducer });
 export const store = createStore(rootReducer, applyMiddleware(thunk));
+
+// PostsList.jsx
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchPosts } from "./actions";
+
+export function PostsList() {
+  const { items, loading, error } = useSelector((state) => state.posts);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchPosts());
+  }, [dispatch]);
+
+  if (loading) return <p>Loading…</p>;
+  if (error) return <p>Error: {error}</p>;
+  return (
+    <ul>
+      {items.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
 ```
 
 ### RTK approach
@@ -65,35 +101,50 @@ export const store = createStore(rootReducer, applyMiddleware(thunk));
 This is the RTK approach to using Redux. It is a bit more concise and requires less boilerplate code.
 
 ```js
-// counterSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+// apiSlice.js
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const counterSlice = createSlice({
-  name: "counter",
-  initialState: { value: 0 },
-  reducers: {
-    increment: (state) => {
-      state.value += 1;
-    },
-    decrement: (state) => {
-      state.value -= 1;
-    },
-  },
+export const apiSlice = createApi({
+  reducerPath: "api", // slice name
+  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  endpoints: (builder) => ({
+    getPosts: builder.query({
+      query: () => "/posts", // request path
+      providesTags: ["Posts"], // caching tag
+    }),
+  }),
 });
 
-export const { increment, decrement } = counterSlice.actions;
-export default counterSlice.reducer;
+export const { useGetPostsQuery } = apiSlice; // auto-generated hook
 
 // store.js
 import { configureStore } from "@reduxjs/toolkit";
-import counterReducer from "./counterSlice";
+import { apiSlice } from "./apiSlice";
 
 export const store = configureStore({
   reducer: {
-    counter: counterReducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
   },
-  // thunk middleware + devtools are added by default
+  middleware: (getDefault) => getDefault().concat(apiSlice.middleware),
 });
+
+// PostsList.jsx
+import React from "react";
+import { useGetPostsQuery } from "./apiSlice";
+
+export function PostsList() {
+  const { data: posts, error, isLoading } = useGetPostsQuery();
+
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <p>Error!</p>;
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
 ```
 
 ## what's included in RTK Query
