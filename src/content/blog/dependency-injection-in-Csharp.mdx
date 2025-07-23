@@ -1,0 +1,258 @@
+---
+title: "Dependency Injection (DI) in C#"
+description: "Complete guide to Dependency Injection (DI) in C# and .NET Core. Learn DI fundamentals, service lifetimes (Transient, Scoped, Singleton), service registration, and practical implementation with repository pattern examples."
+image: "/images/blog/di.png"
+date: "2025-07-23"
+author: "AustinX"
+---
+
+# Dependency Injection (DI) in C#
+
+## What is Dependency Injection?
+
+Dependency Injection is a design pattern that implements Inversion of Control (IoC). Instead of a class creating its own dependencies, they are "injected" from the outside. This makes code more modular, testable, and maintainable.
+
+## Benefits of Dependency Injection?
+
+- **Testability:** Easy to mock dependencies for unit testing
+- **Loose Coupling:** Classes depend on abstractions, not concrete implementations
+- **Flexibility:** Easy to swap implementations
+- **Maintainability:** Changes to dependencies don't affect dependent classes
+
+## Comparison of DI and No DI
+
+### Without DI:
+
+```csharp
+public class OrderController
+{
+    private readonly OrderService _orderService;
+
+    public OrderController()
+    {
+        _orderService = new OrderService(); // Tightly coupled
+    }
+}
+```
+
+### With DI:
+
+```csharp
+public class OrderController
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService; // Injected dependency
+    }
+}
+```
+
+## DI Implementation in .NET Core
+
+.NET Core has built-in DI support through the `IServiceCollection` interface. You configure services in the `Program.cs` file (or `Startup.cs` in older versions).
+
+```csharp
+// Program.cs (.NET 6+)
+var builder = WebApplication.CreateBuilder(args);
+
+// Register services
+builder.Services.AddTransient<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+var app = builder.Build();
+```
+
+The DI container automatically resolves dependencies when creating controller instances:
+
+```csharp
+[ApiController]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    // Framework automatically injects the dependency
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+}
+```
+
+## Service Lifetimes
+
+### 1. **Transient** (**AddTransient**)
+
+- **Behavior:** New instance created every time the service is requested
+- **Use Case:** Lightweight, stateless services
+- **Example:** Utility classes, validators, mappers
+
+```csharp
+builder.Services.AddTransient<IEmailService, EmailService>();
+```
+
+### 2. **Scoped** (**AddScoped**)
+
+- **Behavior:** One instance per HTTP request scope
+- **Use Case:** Per-request data, database contexts
+- **Example:** Entity Framework DbContext, user session data
+
+```csharp
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString)); // Scoped by default
+```
+
+### 3. **Singleton** (**AddSingleton**)
+
+- **Behavior:** Single instance for the entire application lifetime
+- **Use Case:** Shared read-only data, expensive initialization, thread-safe services
+- **Example:** Configuration services, caching services
+
+```csharp
+builder.Services.AddSingleton<IConfigurationService, ConfigurationService>();
+```
+
+## Registering Services
+
+### Basic Registration
+
+```csharp
+// Interface to implementation binding
+services.AddTransient<IMyService, MyService>();
+
+// Concrete class registration
+services.AddTransient<MyService>();
+
+// Factory pattern
+services.AddTransient<IMyService>(provider =>
+    new MyService(provider.GetService<IDependency>()));
+```
+
+### Database Context Registration
+
+```csharp
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// AddDbContext registers the context as Scoped by default
+```
+
+### Multiple Implementations
+
+```csharp
+services.AddTransient<INotificationService, EmailNotificationService>();
+services.AddTransient<INotificationService, SmsNotificationService>();
+
+// Inject IEnumerable<INotificationService> to get all implementations
+```
+
+## Practical Scenario: Repository Pattern with DI
+
+Let's implement a complete example with a repository that a controller depends on:
+
+### 1. Define the Interface
+
+```csharp
+public interface IOrderRepository
+{
+    Task<Order> GetByIdAsync(int id);
+    Task<IEnumerable<Order>> GetAllAsync();
+    Task AddAsync(Order order);
+}
+```
+
+### 2. Implement the Repository
+
+```csharp
+public class OrderRepository : IOrderRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public OrderRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Order> GetByIdAsync(int id)
+    {
+        return await _context.Orders.FindAsync(id);
+    }
+
+    public async Task<IEnumerable<Order>> GetAllAsync()
+    {
+        return await _context.Orders.ToListAsync();
+    }
+
+    public async Task AddAsync(Order order)
+    {
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+    }
+}
+```
+
+### 3. Register in DI Container
+
+```csharp
+// Program.cs
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+```
+
+### 4. Inject into Controller
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    private readonly IOrderRepository _orderRepository;
+
+    public OrdersController(IOrderRepository orderRepository)
+    {
+        _orderRepository = orderRepository;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+    {
+        var orders = await _orderRepository.GetAllAsync();
+        return Ok(orders);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Order>> GetOrder(int id)
+    {
+        var order = await _orderRepository.GetByIdAsync(id);
+        if (order == null) return NotFound();
+        return Ok(order);
+    }
+}
+```
+
+## Testing with DI
+
+```csharp
+[Test]
+public async Task GetOrder_ShouldReturnOrder_WhenExists()
+{
+    // Arrange
+    var mockRepository = new Mock<IOrderRepository>();
+    var order = new Order { Id = 1, Name = "Test Order" };
+    mockRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(order);
+
+    var controller = new OrdersController(mockRepository.Object);
+
+    // Act
+    var result = await controller.GetOrder(1);
+
+    // Assert
+    var okResult = result.Result as OkObjectResult;
+    Assert.IsNotNull(okResult);
+    Assert.AreEqual(order, okResult.Value);
+}
+```
