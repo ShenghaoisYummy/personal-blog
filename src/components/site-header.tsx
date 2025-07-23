@@ -21,8 +21,8 @@ export default function SiteHeader() {
           >
             <Icons.logo className="size-12 fill-current" />
             <span className="font-bold">{siteConfig.name}</span>
-            <ThemeToggle />
           </Link>
+          <ThemeToggle />
         </div>
         <div className="flex items-center space-x-5 md:space-x-6">
           <HeaderNav />
